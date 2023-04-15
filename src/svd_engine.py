@@ -4,7 +4,7 @@ from scipy.linalg import svd
 from sklearn.model_selection import train_test_split
 
 
-def read_data(filename: str = "../data/u.data"):
+def read_data(filename: str = "../data/u.data") -> pd.DataFrame:
     """
     Reads the movielens100k dataset from a .data file.
 
@@ -40,7 +40,7 @@ def read_data(filename: str = "../data/u.data"):
     return rating_df
 
 
-def keep_movies_rated_by_at_least(df: pd.DataFrame, perc: float = 0.0):
+def keep_movies_rated_by_at_least(df: pd.DataFrame, perc: float = 0.0) -> pd.DataFrame:
     """
     Filters the dataframe to keep only movies that have been rated by at least perc% of the users.
 
@@ -57,7 +57,7 @@ def keep_movies_rated_by_at_least(df: pd.DataFrame, perc: float = 0.0):
     return filtered
 
 
-def create_pivot_table(data: pd.DataFrame):
+def create_pivot_table(data: pd.DataFrame) -> pd.DataFrame:
     """
     Creates a pivot table from the dataframe, where rowsa re the users and columns are the movies. Values are the ratings corresponding to the user-movie pair. (ratings for watched movies lie between 1 and 5, unwatched are filled with 0).
 
@@ -75,7 +75,7 @@ def create_pivot_table(data: pd.DataFrame):
     )
 
 
-def split(data: pd.DataFrame, split: float = 0.2):
+def split(data: pd.DataFrame, split: float = 0.2) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Function to split the data into train and test sets.
 
@@ -97,7 +97,7 @@ def preserve_variance(
     sigma: np.ndarray,
     users: pd.Series.index,
     movies: pd.DataFrame.columns,
-):
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     A utility function to preserve a certain percentage of the variance in the SVD decomposition.
 
@@ -132,7 +132,9 @@ def preserve_variance(
     )
 
 
-def compute_svd(data: pd.DataFrame, perc: float):
+def compute_svd(
+    data: pd.DataFrame, perc: float
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Function to compute the SVD decomposition of the pivot table.
 
@@ -151,7 +153,7 @@ def compute_svd(data: pd.DataFrame, perc: float):
     return U, sigma, VT
 
 
-def rmse(true: np.ndarray, pred: np.ndarray):
+def rmse(true: np.ndarray, pred: np.ndarray) -> float:
     """
     Function to compute the RMSE between the true and predicted values.
 
@@ -166,7 +168,7 @@ def rmse(true: np.ndarray, pred: np.ndarray):
     return np.sqrt(np.mean(x**2))
 
 
-def cosine_similarity(y1: np.ndarray, y2: np.ndarray):
+def cosine_similarity(y1: np.ndarray, y2: np.ndarray) -> float:
     """
     Function to compute the cosine similarity between two vectors.
 
@@ -180,7 +182,7 @@ def cosine_similarity(y1: np.ndarray, y2: np.ndarray):
     return np.dot(y1, y2) / (np.linalg.norm(y1) * np.linalg.norm(y2))
 
 
-def clean_preds(y: np.ndarray):
+def clean_preds(y: np.ndarray) -> np.ndarray:
     """
     A function to clean the predicted values as given by the SVD decomposition algorithm. We do not want negative ratings or ratings greater than 5. Therefore, we set the negative ratings to 0 and the ratings greater than 5 to 5.
 
@@ -203,19 +205,90 @@ def clean_preds(y: np.ndarray):
 
 
 def predict(
-    user: pd.Series,
-    VT: pd.DataFrame,
+    user_id: int,
+    user_ratings: np.ndarray,
+    movie_id: int,
+    U: pd.DataFrame,
     sigma: pd.DataFrame,
-    test: bool = False,
-    top_k: int = 10,
-):
+    VT: pd.DataFrame,
+) -> float:
     """
-    Predicts the ratings for the movies that the user has not watched (if test is False) or for a subset of movies that they have watched (if test is True).
+    Function to predict the rating for a given user-movie pair.
 
     Args:
-        user (pandas.Series): a series object containing the ratings for the movies that the user has watched (columns: movie_id, values: rating) (a single row/user from the test set or the pivot table)
-        VT (pandas.DataFrame): VT matrix from the SVD decomposition (latent factors X movie)
-        sigma (pandas.DataFrame): Diagonal sigma matrix (strength of latent factors) from the SVD decomposition (latent factors X latent factors)
-        test (bool): whether the user is from the test set or the pivot table. Defaults to False.
+        user_id (int): user id
+        movie_id (int): movie id
+        U (pd.DataFrame): U matrix from the SVD decomposition (user X latent factors)
+        sigma (pd.DataFrame): Diagnol sigma matrix (strength of latent factors) from the SVD decomposition (latent factors X latent factors)
+        VT (pd.DataFrame): VT matrix from the SVD decomposition (latent factors X movie)
+
+    Returns:
+        float: predicted rating for the given user-movie pair
     """
-    return
+    V = VT[movie_id].values
+    if user_id not in U.index:
+        u_new = user_ratings @ VT.T @ np.linalg.inv(sigma)
+    else:
+        u_new = U.loc[user_id].value
+    return u_new.reshape(1, -1) @ sigma.values @ V.reshape(-1, 1)
+
+
+def top_k_precision(actual: list, predicted: list, k: int) -> float:
+    """
+    Function to compute the top-k precision for a given user.
+
+    Args:
+        actual (list): list of tuples containing the actual ratings for the user
+        predicted (list): list of tuples containing the predicted ratings for the user
+        k (int): number of top items to consider
+
+    Returns:
+        float: top-k precision for the given user
+    """
+    actual = sorted(actual, key=lambda x: x[1], reverse=True)
+    predicted = sorted(predicted, key=lambda x: x[1], reverse=True)
+    actual = [x[0] for x in actual[:k]]
+    predicted = [x[0] for x in predicted[:k]]
+    return len(set(actual) & set(predicted)) / k
+
+
+def score(
+    test: pd.DataFrame,
+    U: pd.DataFrame,
+    sigma: pd.DataFrame,
+    VT: pd.DataFrame,
+    k: int = 5,
+) -> None:
+    """
+    Scores the RMSE and top-k precision for the given test set.
+
+    Args:
+        test (pd.DataFrame): test set
+        U (pd.DataFrame): U matrix from the SVD decomposition (user X latent factors)
+        sigma (pd.DataFrame): Diagnol sigma matrix (strength of latent factors) from the SVD decomposition (latent factors X latent factors)
+        VT: (pd.DataFrame): VT matrix from the SVD decomposition (latent factors X movie)
+        k (int): number of top items to consider. Defaults to 5.
+    Returns:
+        None
+
+    """
+    actual = []
+    actual_per_user = []
+    preds_per_user = []
+    avg_top_k_precision = 0
+    preds = []
+    for user_id, movie in test.iterrows():
+        for movie_id, rating in movie.items():
+            if rating != 0:
+                pred = predict(None, test.loc[user_id].values, movie_id, U, sigma, VT)
+                actual.append((movie_id, rating))
+                actual_per_user.append((movie_id, rating))
+                preds.append((movie_id, pred))
+                preds_per_user.append((movie_id, pred))
+        avg_top_k_precision += top_k_precision(actual_per_user, preds_per_user, k)
+        actual_per_user = []
+        preds_per_user = []
+    actual = np.array(actual)
+    preds = np.array(clean_preds(preds), dtype="object")
+    print(f"RMSE: {rmse(actual[:, 1], preds[:, 1])[0][0]}")
+    print(f"Top {k} precision: {(avg_top_k_precision / len(test))*100}%")

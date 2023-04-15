@@ -4,9 +4,9 @@ SVD and CUR algorithms implemented using Python
 
 <!-- A table -->
 
-| Algorithm             | RMSE | Top K Precision | Time      |
-| --------------------- | ---- | --------------- | --------- |
-| SVD                   | 0.87 | 0.22            | 1.5 hours |
-| SVD with 90% variance | 0.87 | 0.22            | 1.5 hours |
-| CUR                   | 0.87 | 0.22            | 1.5 hours |
-| CUR with 90% variance | 0.87 | 0.22            | 1.5 hours |
+| Algorithm             | RMSE                   | Top K Precision    | Time |
+| --------------------- | ---------------------- | ------------------ | ---- |
+| SVD                   | 2.0524248720723635e-15 | 81.063829787234    | ~ 2s |
+| SVD with 90% variance | 0.5232035676619431     | 75.63829787234042% | ~ 2s |
+| CUR                   | -                      | -                  | -    |
+| CUR with 90% variance | -                      | -                  | -    |
