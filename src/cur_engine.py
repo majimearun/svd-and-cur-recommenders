@@ -53,15 +53,15 @@ def cur_decomposition(matrix, rank):
     intersection_matrix = matrix[
         selected_row_indices[:, np.newaxis], selected_col_indices
     ]
-    w, s, vt = np.linalg.svd(intersection_matrix)
+    W, S, VT = np.linalg.svd(intersection_matrix)
 
     # Compute the pseudo-inverse of the singular values
-    pseudo_inv_s = np.diag(1 / s)
-    pseudo_inv_s[s < 1e-15] = 0  # Set very small singular values to zero
+    pseudo_inv_s = np.diag(1 / S)
+    pseudo_inv_s[S < 1e-15] = 0  # Set very small singular values to zero
 
     # Step 4: Compute the final decomposition
-    c = np.dot(selected_col_matrix, np.diag(c_scaling_factors))
-    r = np.dot(np.diag(r_scaling_factors), selected_row_matrix)
-    u = np.dot(vt.T, np.dot(pseudo_inv_s, np.dot(pseudo_inv_s, w.T)))
+    C = np.dot(selected_col_matrix, np.diag(c_scaling_factors))
+    R = np.dot(np.diag(r_scaling_factors), selected_row_matrix)
+    U = np.dot(VT.T, np.dot(pseudo_inv_s, np.dot(pseudo_inv_s, W.T)))
 
-    return c, u, r
+    return C, U, R
