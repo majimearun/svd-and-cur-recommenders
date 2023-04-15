@@ -97,7 +97,7 @@ def preserve_variance(
     sigma: np.ndarray,
     users: pd.Series.index,
     movies: pd.DataFrame.columns,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, int]:
     """
     A utility function to preserve a certain percentage of the variance in the SVD decomposition.
 
@@ -110,7 +110,7 @@ def preserve_variance(
         movies (pd.DataFrame.columns): index of the movies in the pivot table, to be used as the columns for the VT matrix
 
     Returns:
-        tuple(pd.DataFrame, pd.DataFrame, pd.DataFrame): a tuple containing the sigma, U and VT matrices after preserving the variance
+        tuple(pd.DataFrame, pd.DataFrame, pd.DataFrame, int): a tuple containing the sigma, U and VT matrices after preserving the variance and the number of latent factors
 
     """
     rows_to_remove = 0
@@ -129,6 +129,7 @@ def preserve_variance(
         pd.DataFrame(sigma[:k, :k]),
         pd.DataFrame(U[:, :k], index=users),
         pd.DataFrame(VT[:k, :], columns=movies),
+        k,
     )
 
 
@@ -143,14 +144,14 @@ def compute_svd(
         perc (float): percentage of variance to preserve. Defaults to 0.0. (0 <= perc <= 1)
 
     Returns:
-        tuple(pd.DataFrame, pd.DataFrame, pd.DataFrame): a tuple containing the U, sigma and VT matrices after preserving the variance
+        tuple(pd.DataFrame, pd.DataFrame, pd.DataFrame, int): a tuple containing the U, sigma and VT matrices after preserving the variance and the number of latent factors
     """
     U, Sigma, VT = svd(data)
     Sigma = np.diag(Sigma)
     users = data.index
     movies = data.columns
-    sigma, U, VT = preserve_variance(perc, U, VT, Sigma, users, movies)
-    return U, sigma, VT
+    sigma, U, VT, k = preserve_variance(perc, U, VT, Sigma, users, movies)
+    return U, sigma, VT, k
 
 
 def rmse(true: np.ndarray, pred: np.ndarray) -> float:
@@ -204,7 +205,7 @@ def clean_preds(y: np.ndarray) -> np.ndarray:
     return y_final
 
 
-def predict(
+def svr_predict(
     user_id: int,
     user_ratings: np.ndarray,
     movie_id: int,
@@ -280,7 +281,9 @@ def score(
     for user_id, movie in test.iterrows():
         for movie_id, rating in movie.items():
             if rating != 0:
-                pred = predict(None, test.loc[user_id].values, movie_id, U, sigma, VT)
+                pred = svr_predict(
+                    None, test.loc[user_id].values, movie_id, U, sigma, VT
+                )
                 actual.append((movie_id, rating))
                 actual_per_user.append((movie_id, rating))
                 preds.append((movie_id, pred))
