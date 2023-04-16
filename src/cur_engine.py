@@ -127,7 +127,6 @@ def cur_score(
         preds_per_user = []
     actual = np.array(actual)
     preds = np.array(preds)
-    print(actual.shape, preds.shape)
     print(f"RMSE: {rmse(actual[:, 1], preds[:, 1])}")
     print(f"Top {k} precision: {(avg_top_k_precision / len(test))*100}%")
     print(f"Number of latent factors: {len(U)}")
