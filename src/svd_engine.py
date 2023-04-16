@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import svd
 from sklearn.model_selection import train_test_split
+from scipy.stats import spearmanr
 
 
 def read_data(filename: str = "../data/u.data") -> pd.DataFrame:
@@ -295,3 +296,5 @@ def score(
     preds = np.array(clean_preds(preds), dtype="object")
     print(f"RMSE: {rmse(actual[:, 1], preds[:, 1])[0][0]}")
     print(f"Top {k} precision: {(avg_top_k_precision / len(test))*100}%")
+    print(f"Number of latent factors: {len(sigma)}")
+    print(f"Spearmans correlation: {spearmanr(actual[:, 1], preds[:, 1])[0]}")
