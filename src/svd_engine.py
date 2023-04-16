@@ -254,7 +254,7 @@ def top_k_precision(actual: list, predicted: list, k: int) -> float:
     return len(set(actual) & set(predicted)) / k
 
 
-def score(
+def svd_score(
     test: pd.DataFrame,
     U: pd.DataFrame,
     sigma: pd.DataFrame,
