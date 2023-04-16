@@ -38,26 +38,3 @@ def cur_decomposition(
     U = pd.DataFrame(U)
 
     return C, U, R
-
-
-def cur_predict(
-    user_ratings: pd.Series,
-    movie_id: int,
-    U: pd.DataFrame,
-    R: pd.DataFrame,
-) -> float:
-    """
-    Function to predict the rating for a given user-movie pair.
-
-    Args:
-        user_ratings (numpy array): user ratings
-        movie_id (int): movie id
-        U (numpy array): U matrix from the CUR decomposition
-        R (numpy array): R matrix from the CUR decomposition
-
-    Returns:
-        float: predicted rating for the given user-movie pair
-    """
-    R_m = R[movie_id].values
-    u_new = user_ratings @ R.T @ np.linalg.inv(U)
-    return u_new.reshape(1, -1) @ R_m.reshape(-1, 1)
