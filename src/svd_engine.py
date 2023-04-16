@@ -231,7 +231,7 @@ def svr_predict(
     if user_id not in U.index:
         u_new = user_ratings @ VT.T @ np.linalg.inv(sigma)
     else:
-        u_new = U.loc[user_id].value
+        u_new = U[user_id].value
     return u_new.reshape(1, -1) @ sigma.values @ V.reshape(-1, 1)
 
 
@@ -283,7 +283,7 @@ def score(
         for movie_id, rating in movie.items():
             if rating != 0:
                 pred = svr_predict(
-                    None, test.loc[user_id].values, movie_id, U, sigma, VT
+                    user_id, test.loc[user_id].values, movie_id, U, sigma, VT
                 )
                 actual.append((movie_id, rating))
                 actual_per_user.append((movie_id, rating))
@@ -294,7 +294,9 @@ def score(
         preds_per_user = []
     actual = np.array(actual)
     preds = np.array(clean_preds(preds), dtype="object")
-    print(f"RMSE: {rmse(actual[:, 1], preds[:, 1])[0][0]}")
+    print(preds)
+    print(actual.shape, preds.shape)
+    print(f"RMSE: {rmse(actual[:, 1], preds[:, 1])}")
     print(f"Top {k} precision: {(avg_top_k_precision / len(test))*100}%")
     print(f"Number of latent factors: {len(sigma)}")
     print(f"Spearmans correlation: {spearmanr(actual[:, 1], preds[:, 1])[0]}")
